@@ -7,6 +7,12 @@ ROOT="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
 "$ROOT/bin/build"
 cd "$ROOT/pkgbuild"
 
+# makepkg needs the same cargo lookup the build just used; a rustup toolchain
+# is not on the PATH a fresh shell or launcher starts with.
+if ! command -v cargo >/dev/null 2>&1 && [ -f "${CARGO_HOME:-$HOME/.cargo}/env" ]; then
+    . "${CARGO_HOME:-$HOME/.cargo}/env"
+fi
+
 # A rustup toolchain has a working cargo but no pacman package for makepkg to
 # find, so say why the dependency check is being skipped instead of failing
 # with "missing cargo" while cargo is on PATH.

@@ -6,6 +6,16 @@ set -eu
 ROOT="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
 cd "$ROOT"
 
+# A rustup toolchain lives in ~/.cargo/bin, which a non-login shell (a launcher,
+# a panel, a cron job) does not have on PATH.
+if ! command -v cargo >/dev/null 2>&1 && [ -f "${CARGO_HOME:-$HOME/.cargo}/env" ]; then
+    . "${CARGO_HOME:-$HOME/.cargo}/env"
+fi
+if ! command -v cargo >/dev/null 2>&1; then
+    echo "omascope: cargo is not installed. Install rustup, then run this again." >&2
+    exit 1
+fi
+
 OMARCHY_SHELL="${OMARCHY_PATH:-/usr/share/omarchy}/shell"
 for module in Commons Ui; do
     link="$ROOT/ui/$module"
