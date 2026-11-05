@@ -2,7 +2,7 @@
 
 **A keyboard-first process manager for Omarchy.**
 
-[![omascope's list view, with CPU, memory, owner and command line, and the selected process in the detail rail](docs/screenshot.png)](docs/screenshot.png)
+<a href="docs/screenshot.png"><img src="docs/screenshot.png" width="720" alt="omascope with the vitals strip, the process table, and the selected process in the detail rail"></a>
 
 omascope reads `/proc`, shows what is running, and sends a signal when you ask
 it to. It follows the Omarchy theme and the Omarchy language live, opens as a
@@ -15,9 +15,13 @@ normal window, and does not need a terminal.
   context.
 - **Search by anything you know.** Name, command line, user, or the start of a
   PID. `Esc` puts the whole list back.
-- **Ending asks first.** `Space` opens a card with the process name, its owner,
-  and the difference between `SIGTERM` and `SIGKILL`. The backend reports a
-  refused signal in the window instead of failing silently.
+- **Vitals at a glance.** CPU, memory, and NVIDIA GPU utilisation over the last
+  ninety seconds, with core count, package temperature, VRAM, and the GPU's own
+  temperature. The GPU card appears when `nvidia-smi` reports one.
+- **Ending asks first, from wherever you are.** The detail rail has **Terminate**
+  and **Kill** buttons; `Space` and `x` open the same card with the matching
+  signal already selected. The backend reports a refused signal in the window
+  instead of failing silently.
 - **The theme is the theme.** Colours and corner rounding come from Omarchy's
   own `qs.Commons` shell library, so a theme switch repaints the window without
   a restart.
@@ -55,6 +59,7 @@ Press `?` in the window for the same list.
 | Move the selection | `j` `k` or `↑` `↓` |
 | First / last process | `g` / `G` |
 | End the selected process… | `Space` (or double-click a row) |
+| Force kill the selection | `x` |
 | Fold / unfold a tree branch | `h` / `l` |
 | Search | `/` |
 | Clear the search or close a card | `Esc` |
@@ -113,6 +118,7 @@ src/procs.rs     reading /proc, CPU deltas, users, memory
 src/signals.rs   signal names and the one kill(2) call
 src/cli.rs       serve, ps, kill, skill, opening the window
 src/demo.rs      made-up processes for screenshots
+src/gpu.rs       nvidia-smi readings on a background thread
 ui/shell.qml     the window, keys, and the single backend pipe
 ui/*.qml         chrome, table, detail rail, kill card, key map
 ui/i18n/         catalogs keyed by their English text

@@ -40,17 +40,35 @@ FloatingWindow {
     property double age: 0
     property string backendError: ""
     property bool backendReady: false
+    property var cpuHistory: []
+    property var memHistory: []
+    property var gpuHistory: []
+    property var processHistory: []
+    property int historyPid: -1
 
     readonly property var selectedProcess: {
         for (var i = 0; i < processes.length; i++)
             if (processes[i].pid === selectedPid) return processes[i]
         return null
     }
+    onSelectedPidChanged: {
+        // A new process gets its own history; carrying the old line over
+        // would show one process's spikes under another's name.
+        processHistory = []
+        historyPid = selectedPid
+    }
+
     readonly property int runningCount: {
         var count = 0
         for (var i = 0; i < processes.length; i++)
             if (processes[i].state === "R") count++
         return count
+    }
+
+    function appendHistory(values, value, limit) {
+        var next = values.slice(Math.max(0, values.length - (limit - 1)))
+        next.push(Number(value) || 0)
+        return next
     }
 
     function fill(text, values) {
@@ -247,7 +265,7 @@ FloatingWindow {
         noticeTimer.restart()
     }
 
-    function askKill(process) {
+    function askKill(process, signal) {
         if (!process) return
         // PID 1 is the init system: signalling it is either refused by the
         // kernel or takes the session down, so the window says no first.
@@ -256,6 +274,7 @@ FloatingWindow {
             return
         }
         pendingKill = process
+        killCard.preferred = signal || "TERM"
         killCard.open = true
     }
 
@@ -280,7 +299,15 @@ FloatingWindow {
             meta = message
             processes = message.procs || []
             updatedAt = message.time
+            if (selectedPid >= 0 && selectedPid !== historyPid) {
+                processHistory = []
+                historyPid = selectedPid
+            }
             rebuild()
+            cpuHistory = appendHistory(cpuHistory, message.cpu, 90)
+            memHistory = appendHistory(memHistory, message.memTotal > 0 ? message.memUsed / message.memTotal * 100 : 0, 90)
+            gpuHistory = appendHistory(gpuHistory, message.gpus && message.gpus.length > 0 ? message.gpus[0].util : 0, 90)
+            processHistory = appendHistory(processHistory, selectedProcess ? selectedProcess.cpu : 0, 90)
             if (pendingKill) {
                 // The target may have exited between the ask and the answer.
                 var still = false
@@ -336,7 +363,8 @@ FloatingWindow {
             if (event.modifiers & Qt.ShiftModifier) selectAt(rows.length - 1)
             else selectAt(0)
             break
-        case Qt.Key_Space: askKill(selectedProcess); break
+        case Qt.Key_Space: askKill(selectedProcess, "TERM"); break
+        case Qt.Key_X: askKill(selectedProcess, "KILL"); break
         case Qt.Key_H: foldSelected(false); break
         case Qt.Key_L: foldSelected(true); break
         case Qt.Key_R: requestRefresh(); break
@@ -474,6 +502,24 @@ FloatingWindow {
                 color: Commons.Util.alpha(Commons.Color.foreground, 0.12)
             }
 
+            VitalsBar {
+                id: vitals
+                width: parent.width
+                strings: win.strings
+                meta: win.meta
+                cpuHistory: win.cpuHistory
+                memHistory: win.memHistory
+                gpuHistory: win.gpuHistory
+                cores: win.meta.cores || 0
+                cpuTemp: win.meta.temp !== null && win.meta.temp !== undefined ? win.meta.temp : -1
+            }
+
+            Rectangle {
+                width: parent.width
+                height: 1
+                color: Commons.Util.alpha(Commons.Color.foreground, 0.08)
+            }
+
             ColumnHeader {
                 id: header
                 width: parent.width
@@ -493,7 +539,7 @@ FloatingWindow {
             Item {
                 id: body
                 width: parent.width
-                height: parent.height - chrome.height - header.height - status.height - 2
+                height: parent.height - chrome.height - vitals.height - header.height - status.height - 3
                 clip: true
 
                 ListView {
@@ -510,7 +556,7 @@ FloatingWindow {
                         strings: win.strings
                         selected: model.pid === win.selectedPid
                         onPicked: win.selectedPid = model.pid
-                        onActivated: win.askKill(win.selectedProcess)
+                        onActivated: win.askKill(win.selectedProcess, "TERM")
                         onFoldRequested: function (pid) { win.toggleFolded(pid) }
                     }
                 }
@@ -554,7 +600,8 @@ FloatingWindow {
                     visible: win.width >= 1000
                     strings: win.strings
                     process: win.selectedProcess
-                    onKillRequested: function (target) { win.askKill(target) }
+                    history: win.processHistory
+                    onKillRequested: function (target, signal) { win.askKill(target, signal) }
                 }
 
                 Rectangle {
@@ -587,7 +634,7 @@ FloatingWindow {
             anchors.fill: parent
             strings: win.strings
             target: win.pendingKill
-            onCanceled: { win.pendingKill = null; keyRoot.forceActiveFocus() }
+            onCanceled: { killCard.open = false; win.pendingKill = null; keyRoot.forceActiveFocus() }
             onConfirmed: function (signal) { win.confirmKill(signal); keyRoot.forceActiveFocus() }
         }
 
@@ -595,7 +642,21 @@ FloatingWindow {
             id: helpCard
             anchors.fill: parent
             strings: win.strings
-            onClosed: keyRoot.forceActiveFocus()
+            onClosed: { helpCard.open = false; keyRoot.forceActiveFocus() }
+        }
+    }
+
+    // Escape closes a card even if the key never reaches the focused root
+    // (an input method or the search field can take it first).
+    Shortcut {
+        sequence: "Escape"
+        context: Qt.ApplicationShortcut
+        enabled: killCard.open || helpCard.open
+        onActivated: {
+            killCard.open = false
+            helpCard.open = false
+            win.pendingKill = null
+            keyRoot.forceActiveFocus()
         }
     }
 

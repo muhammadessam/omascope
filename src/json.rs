@@ -45,9 +45,36 @@ pub fn process(process: &Process) -> String {
 pub fn snapshot(snapshot: &Snapshot, interval_ms: u64) -> String {
     let mut out = String::with_capacity(64 + snapshot.processes.len() * 160);
     out.push_str(&format!(
-        "{{\"type\":\"snapshot\",\"time\":{},\"interval\":{},\"cores\":{},\"memTotal\":{},\"memUsed\":{},\"load1\":{:.2},\"procs\":[",
-        snapshot.time, interval_ms, snapshot.cores, snapshot.mem_total, snapshot.mem_used, snapshot.load1
+        "{{\"type\":\"snapshot\",\"time\":{},\"interval\":{},\"cores\":{},\"cpu\":{:.1},\"memTotal\":{},\"memUsed\":{},\"swapTotal\":{},\"swapUsed\":{},\"load1\":{:.2},",
+        snapshot.time,
+        interval_ms,
+        snapshot.cores,
+        snapshot.cpu,
+        snapshot.mem_total,
+        snapshot.mem_used,
+        snapshot.swap_total,
+        snapshot.swap_used,
+        snapshot.load1
     ));
+    match snapshot.temp {
+        Some(temp) => out.push_str(&format!("\"temp\":{temp:.1},")),
+        None => out.push_str("\"temp\":null,"),
+    }
+    out.push_str("\"gpus\":[");
+    for (index, gpu) in snapshot.gpus.iter().enumerate() {
+        if index > 0 {
+            out.push(',');
+        }
+        out.push_str(&format!(
+            "{{\"name\":{},\"util\":{:.1},\"memUsed\":{},\"memTotal\":{},\"temp\":{}}}",
+            escape(&gpu.name),
+            gpu.util,
+            gpu.mem_used,
+            gpu.mem_total,
+            gpu.temp.map(|value| format!("{value:.1}")).unwrap_or_else(|| "null".into())
+        ));
+    }
+    out.push_str("],\"procs\":[");
     for (index, entry) in snapshot.processes.iter().enumerate() {
         if index > 0 {
             out.push(',');
@@ -94,9 +121,14 @@ mod tests {
         let snapshot = Snapshot {
             time: 10,
             cores: 4,
+            cpu: 22.5,
             mem_total: 1024,
             mem_used: 512,
+            swap_total: 2048,
+            swap_used: 0,
+            temp: Some(48.0),
             load1: 0.25,
+            gpus: Vec::new(),
             processes: vec![Process {
                 pid: 7,
                 ppid: 1,

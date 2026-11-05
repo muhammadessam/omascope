@@ -73,5 +73,11 @@
   "That process has already exited.": "هذه العملية خرجت بالفعل.",
   "%1 sent to %2": "تم إرسال %1 إلى %2",
   "%1 s ago": "قبل %1 ث",
-  "The init system cannot be ended from here.": "لا يمكن إنهاء نظام التهيئة من هنا."
+  "The init system cannot be ended from here.": "لا يمكن إنهاء نظام التهيئة من هنا.",
+  "Kill": "إنهاء قسري",
+  "of %1": "من %1",
+  "Swap %1": "تبديل %1",
+  "CPU history": "سجل CPU",
+  "Force kill the selection": "إنهاء التحديد قسريًا",
+  "The same keys work in every view. Enter on a row, or a double-click, asks to end it. The detail rail has a Terminate and a Kill button for the selected process.": "المفاتيح نفسها تعمل في كل عرض. Enter على صف، أو نقر مزدوج، يسأل عن إنهاء العملية. يحتوي الشريط الجانبي على زرّي إنهاء لطيف وإنهاء قسري للعملية المحددة."
 }

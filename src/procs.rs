@@ -35,10 +35,18 @@ pub struct Process {
 pub struct Snapshot {
     pub time: u64,
     pub cores: u32,
+    /// Whole-machine busy percentage, the average across every core.
+    pub cpu: f64,
     pub mem_total: u64,
     pub mem_used: u64,
+    pub swap_total: u64,
+    pub swap_used: u64,
+    pub temp: Option<f64>,
     pub load1: f64,
     pub processes: Vec<Process>,
+    /// Filled by the command that serves the snapshot; the sampler leaves it
+    /// empty because the driver poll runs on its own thread.
+    pub gpus: Vec<crate::gpu::Gpu>,
 }
 
 /// The parsed pieces of one `/proc/<pid>/stat` line, before CPU time is
@@ -59,6 +67,7 @@ pub struct Stat {
 pub struct Sampler {
     previous: HashMap<i32, (u64, u64)>,
     previous_total: u64,
+    previous_idle: u64,
     users: HashMap<u32, String>,
 }
 
@@ -71,7 +80,7 @@ impl Sampler {
     /// since the previous sweep, so the first one reports each process's
     /// lifetime average, the same number `ps` shows, rather than zero.
     pub fn sample(&mut self) -> Snapshot {
-        let total_ticks = total_cpu_ticks().unwrap_or(0);
+        let (total_ticks, idle_ticks) = cpu_ticks().unwrap_or((0, 0));
         let cores = cores().unwrap_or(1);
         let uptime = uptime_seconds().unwrap_or(0.0);
         let boot = boot_time().unwrap_or(0);
@@ -79,7 +88,21 @@ impl Sampler {
         let total_delta = total_ticks.saturating_sub(self.previous_total);
         let first = self.previous_total == 0 || total_delta == 0;
 
-        let (mem_total, mem_used) = memory().unwrap_or((0, 0));
+        // Whole-machine load: the busy share of the ticks since the last
+        // sweep. Before there is a previous sweep, report the average since
+        // boot so the first graph point is not a misleading zero.
+        let cpu = if first {
+            if total_ticks == 0 {
+                0.0
+            } else {
+                (total_ticks.saturating_sub(idle_ticks)) as f64 / total_ticks as f64 * 100.0
+            }
+        } else {
+            let idle_delta = idle_ticks.saturating_sub(self.previous_idle);
+            total_delta.saturating_sub(idle_delta) as f64 / total_delta as f64 * 100.0
+        };
+
+        let (mem_total, mem_used, swap_total, swap_used) = memory().unwrap_or((0, 0, 0, 0));
         let mut processes = Vec::new();
         let mut current = HashMap::new();
 
@@ -133,14 +156,20 @@ impl Sampler {
 
         self.previous = current;
         self.previous_total = total_ticks;
+        self.previous_idle = idle_ticks;
 
         Snapshot {
             time: now_seconds(),
             cores,
+            cpu: (cpu * 10.0).round() / 10.0,
             mem_total,
             mem_used,
+            swap_total,
+            swap_used,
+            temp: cpu_temperature(),
             load1: load_average(),
             processes,
+            gpus: Vec::new(),
         }
     }
 
@@ -230,7 +259,10 @@ fn read_cmdline(pid: i32) -> Option<String> {
     Some(parts.join(" "))
 }
 
-fn total_cpu_ticks() -> Option<u64> {
+/// Total and idle jiffies for all CPUs. The first eight fields are user,
+/// nice, system, idle, iowait, irq, softirq and steal; guest time is already
+/// counted in user and must not be added again.
+fn cpu_ticks() -> Option<(u64, u64)> {
     let stat = fs::read_to_string("/proc/stat").ok()?;
     let line = stat.lines().next()?;
     let values: Vec<u64> = line
@@ -239,11 +271,10 @@ fn total_cpu_ticks() -> Option<u64> {
         .filter_map(|value| value.parse::<u64>().ok())
         .take(8)
         .collect();
-    if values.is_empty() {
-        None
-    } else {
-        Some(values.iter().sum())
+    if values.len() < 4 {
+        return None;
     }
+    Some((values.iter().sum(), values[3] + values[4]))
 }
 
 fn cores() -> Option<u32> {
@@ -272,19 +303,46 @@ fn boot_time() -> Option<u64> {
         .and_then(|value| value.trim().parse().ok())
 }
 
-fn memory() -> Option<(u64, u64)> {
+fn memory() -> Option<(u64, u64, u64, u64)> {
     let meminfo = fs::read_to_string("/proc/meminfo").ok()?;
     let mut total = 0;
     let mut available = 0;
+    let mut swap_total = 0;
+    let mut swap_free = 0;
     for line in meminfo.lines() {
         let mut fields = line.split_whitespace();
         match fields.next() {
             Some("MemTotal:") => total = fields.next()?.parse::<u64>().ok()? * 1024,
             Some("MemAvailable:") => available = fields.next()?.parse::<u64>().ok()? * 1024,
+            Some("SwapTotal:") => swap_total = fields.next()?.parse::<u64>().ok()? * 1024,
+            Some("SwapFree:") => swap_free = fields.next()?.parse::<u64>().ok()? * 1024,
             _ => {}
         }
     }
-    (total > 0).then_some((total, total.saturating_sub(available)))
+    (total > 0).then_some((total, total.saturating_sub(available), swap_total, swap_total.saturating_sub(swap_free)))
+}
+
+/// The package temperature from coretemp, if the machine exposes one. A
+/// laptop may not; the vitals card then simply leaves it out.
+fn cpu_temperature() -> Option<f64> {
+    for entry in fs::read_dir("/sys/class/hwmon").ok()?.flatten() {
+        let directory = entry.path();
+        if fs::read_to_string(directory.join("name")).unwrap_or_default().trim() != "coretemp" {
+            continue;
+        }
+        for index in 1..=16 {
+            let label = fs::read_to_string(directory.join(format!("temp{index}_label"))).unwrap_or_default();
+            if !label.trim().starts_with("Package") {
+                continue;
+            }
+            if let Ok(raw) = fs::read_to_string(directory.join(format!("temp{index}_input"))) {
+                if let Ok(milli) = raw.trim().parse::<f64>() {
+                    return Some((milli / 100.0).round() / 10.0);
+                }
+            }
+        }
+    }
+    None
 }
 
 fn load_average() -> f64 {

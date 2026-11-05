@@ -65,5 +65,11 @@
   "That process has already exited.": "Den proces er allerede afsluttet.",
   "%1 sent to %2": "%1 sendt til %2",
   "%1 s ago": "for %1 s siden",
-  "The init system cannot be ended from here.": "Init-systemet kan ikke afsluttes herfra."
+  "The init system cannot be ended from here.": "Init-systemet kan ikke afsluttes herfra.",
+  "Kill": "Dræb",
+  "of %1": "af %1",
+  "Swap %1": "Swap %1",
+  "CPU history": "CPU-historie",
+  "Force kill the selection": "Tvangsstop markeringen",
+  "The same keys work in every view. Enter on a row, or a double-click, asks to end it. The detail rail has a Terminate and a Kill button for the selected process.": "De samme taster virker i alle visninger. Enter på en række, eller et dobbeltklik, spørger om at afslutte den. Panelet til højre har knapperne Afslut og Dræb til den valgte proces."
 }

@@ -10,6 +10,7 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 use crate::demo;
+use crate::gpu;
 use crate::json;
 use crate::procs::{Process, Sampler};
 use crate::signals;
@@ -159,13 +160,15 @@ fn serve(args: &[String]) -> i32 {
 
     let mut sampler = Sampler::new();
     let mut fake = demo::Demo::new();
+    let gpus = gpu::Monitor::start();
     let mut stdout = io::stdout();
     let mut emit = |line: String| -> bool {
         writeln!(stdout, "{line}").is_ok() && stdout.flush().is_ok()
     };
 
     if once {
-        let snapshot = if demo_mode { fake.sample() } else { sampler.sample() };
+        let mut snapshot = if demo_mode { fake.sample() } else { sampler.sample() };
+        if !demo_mode { snapshot.gpus = gpus.current(); }
         return if emit(json::snapshot(&snapshot, interval_ms)) { 0 } else { 1 };
     }
 
@@ -196,7 +199,8 @@ fn serve(args: &[String]) -> i32 {
     let mut interactive = true;
     loop {
         let started = Instant::now();
-        let snapshot = if demo_mode { fake.sample() } else { sampler.sample() };
+        let mut snapshot = if demo_mode { fake.sample() } else { sampler.sample() };
+        if !demo_mode { snapshot.gpus = gpus.current(); }
         if !emit(json::snapshot(&snapshot, interval_ms)) {
             return 0;
         }
@@ -331,10 +335,25 @@ fn ps(args: &[String]) -> i32 {
     snapshot.processes.truncate(limit);
 
     if as_json {
+        snapshot.gpus = gpu::sample();
         println!(
-            "{{\"type\":\"processes\",\"time\":{},\"cores\":{},\"count\":{},\"procs\":[{}]}}",
+            "{{\"type\":\"processes\",\"time\":{},\"cores\":{},\"cpu\":{:.1},\"gpus\":[{}],\"count\":{},\"procs\":[{}]}}",
             snapshot.time,
             snapshot.cores,
+            snapshot.cpu,
+            snapshot
+                .gpus
+                .iter()
+                .map(|gpu| format!(
+                    "{{\"name\":{},\"util\":{:.1},\"memUsed\":{},\"memTotal\":{},\"temp\":{}}}",
+                    json::escape(&gpu.name),
+                    gpu.util,
+                    gpu.mem_used,
+                    gpu.mem_total,
+                    gpu.temp.map(|value| format!("{value:.1}")).unwrap_or_else(|| "null".into())
+                ))
+                .collect::<Vec<_>>()
+                .join(","),
             snapshot.processes.len(),
             snapshot
                 .processes

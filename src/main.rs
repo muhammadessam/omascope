@@ -2,6 +2,7 @@
 
 mod cli;
 mod demo;
+mod gpu;
 mod json;
 mod procs;
 mod signals;

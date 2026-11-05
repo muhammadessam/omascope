@@ -1,4 +1,5 @@
 import QtQuick
+import Quickshell
 import qs.Commons
 import qs.Commons as Commons
 
@@ -10,6 +11,7 @@ Item {
 
     property var strings
     property var target: null
+    property string preferred: "TERM"
     property bool open: false
     property int choice: 0
 
@@ -38,7 +40,9 @@ Item {
         return false
     }
 
-    onOpenChanged: if (open) choice = 0
+    // The rail's two buttons open the same card, already on the signal the
+    // user asked for, so a force kill is one Enter away rather than a toggle.
+    onOpenChanged: if (open) choice = preferred === "KILL" ? 1 : 0
 
     component Option: Rectangle {
         id: option

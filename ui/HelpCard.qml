@@ -90,6 +90,7 @@ Item {
                 KeyRow { keys: "j  k  ↑  ↓"; action: root.strings.t("Move the selection") }
                 KeyRow { keys: "g  G"; action: root.strings.t("First / last process") }
                 KeyRow { keys: "Space"; action: root.strings.t("End the selected process…") }
+                KeyRow { keys: "x"; action: root.strings.t("Force kill the selection") }
                 KeyRow { keys: "h  l"; action: root.strings.t("Fold / unfold a tree branch") }
                 KeyRow { keys: "/"; action: root.strings.t("Search name, user, or PID") }
                 KeyRow { keys: "Esc"; action: root.strings.t("Clear the search or close a card") }
@@ -102,7 +103,7 @@ Item {
 
                 Text {
                     width: parent.width
-                    text: root.strings.t("The same keys work in every view. Enter on a row, or a double-click, asks to end it.")
+                    text: root.strings.t("The same keys work in every view. Enter on a row, or a double-click, asks to end it. The detail rail has a Terminate and a Kill button for the selected process.")
                     color: Commons.Util.alpha(Commons.Color.foreground, 0.45)
                     font.family: Commons.Style.font.family
                     font.pixelSize: Commons.Style.font.caption

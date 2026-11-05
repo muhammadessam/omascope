@@ -92,10 +92,21 @@ impl Demo {
         Snapshot {
             time: now_seconds(),
             cores: 8,
+            cpu: 31.0 + 8.0 * (self.tick as f64 * 0.4).sin(),
             mem_total: 32 * 1024 * 1024 * 1024,
             mem_used: 12_684_000_000,
+            swap_total: 8 * 1024 * 1024 * 1024,
+            swap_used: 512 * 1024 * 1024,
+            temp: Some(54.0),
             load1: 2.4 + 0.4 * (self.tick as f64 * 0.5).sin(),
             processes,
+            gpus: vec![crate::gpu::Gpu {
+                name: "NVIDIA GeForce RTX 3060 Laptop GPU".into(),
+                util: 18.0 + 12.0 * (self.tick as f64 * 0.7).cos(),
+                mem_used: 3_400_000_000,
+                mem_total: 6 * 1024 * 1024 * 1024,
+                temp: Some(58.0),
+            }],
         }
     }
 }
