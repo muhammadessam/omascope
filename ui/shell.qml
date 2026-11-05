@@ -660,5 +660,13 @@ FloatingWindow {
         }
     }
 
+    // Quickshell keeps the process alive when the last window closes, which
+    // leaves the sampler polling /proc with nothing on screen. Closing the
+    // window ends the app, and the backend's pipe closes with it.
+    Connections {
+        target: Quickshell
+        function onLastWindowClosed() { Qt.quit() }
+    }
+
     Component.onCompleted: keyRoot.forceActiveFocus()
 }

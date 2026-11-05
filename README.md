@@ -117,15 +117,15 @@ The Omarchy package builds from GitHub's archive of the tag, so a release is
 just the tag:
 
 ```
-git tag -a v0.1.0 -m "omascope 0.1.0"
+git tag -a v0.1.1 -m "omascope 0.1.1"
 git push origin master
-git push origin v0.1.0
+git push origin v0.1.1
 ```
 
 `pkgbuilds/omascope` in [omacom-io/omarchy-pkgs](https://github.com/omacom-io/omarchy-pkgs)
-fetches `archive/refs/tags/v0.1.0.tar.gz` and watches this repository's tags for
+fetches `archive/refs/tags/v0.1.1.zip` and watches this repository's tags for
 the next release. `bin/release-tarball` still writes the same tree to
-`dist/omascope-v0.1.0.tar.gz` if you want to attach an archive to a GitHub
+`dist/omascope-v0.1.1.tar.gz` if you want to attach an archive to a GitHub
 release, but the recipe does not need one.
 
 ## How it is put together
