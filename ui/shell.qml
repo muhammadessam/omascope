@@ -317,6 +317,14 @@ FloatingWindow {
             return
         }
 
+        // Some input methods send ? as text with no useful key code, so the
+        // character itself is the reliable signal.
+        if (event.text === "?" && !(event.modifiers & (Qt.ControlModifier | Qt.AltModifier))) {
+            helpCard.open = true
+            event.accepted = true
+            return
+        }
+
         switch (event.key) {
         case Qt.Key_J: moveSelection(1); break
         case Qt.Key_K: moveSelection(-1); break
@@ -333,7 +341,12 @@ FloatingWindow {
         case Qt.Key_L: foldSelected(true); break
         case Qt.Key_R: requestRefresh(); break
         case Qt.Key_S: setSort(sortKey); break
-        case Qt.Key_Slash: chrome.focusSearch(); break
+        case Qt.Key_Slash:
+            // On most layouts ? is Shift+/, and Qt reports it as the slash key
+            // rather than Key_QuestionMark, so both spellings open the map.
+            if (event.modifiers & Qt.ShiftModifier) helpCard.open = true
+            else chrome.focusSearch()
+            break
         case Qt.Key_QuestionMark: helpCard.open = true; break
         case Qt.Key_Escape: filterText = ""; chrome.clearSearch(); rebuild(); break
         case Qt.Key_Q: Qt.quit(); break
