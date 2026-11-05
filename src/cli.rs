@@ -111,7 +111,6 @@ fn ui_directory() -> Option<PathBuf> {
         }
     }
     candidates.push(PathBuf::from("/usr/share/omascope/ui"));
-    candidates.push(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("ui"));
     candidates.push(PathBuf::from("ui"));
     candidates
         .into_iter()
