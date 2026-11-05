@@ -192,11 +192,18 @@ FloatingWindow {
             sortAscending = key === "name" || key === "pid"
         }
         rebuild()
+        revealSelection()
     }
 
     function setTree(tree) {
         treeView = tree
         rebuild()
+        revealSelection()
+    }
+
+    function revealSelection() {
+        var index = indexOfPid(rows, selectedPid)
+        if (index >= 0) processList.positionViewAtIndex(index, ListView.Contain)
     }
 
     function selectAt(index) {
@@ -219,6 +226,7 @@ FloatingWindow {
         else next[pid] = true
         folded = next
         rebuild()
+        revealSelection()
     }
 
     function foldSelected(open) {

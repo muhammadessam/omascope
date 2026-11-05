@@ -34,7 +34,8 @@ bin/install
 
 That builds the binary, makes the package with `makepkg`, and installs it, so
 omascope appears in the launcher (`Super + Space`). Run it again after a change
-you want to see there.
+you want to see there. If `cargo` comes from rustup rather than pacman, the
+script skips makepkg's makedepends check and says so.
 
 To try it without installing a package:
 

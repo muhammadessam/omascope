@@ -6,4 +6,13 @@ set -eu
 ROOT="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
 "$ROOT/bin/build"
 cd "$ROOT/pkgbuild"
+
+# A rustup toolchain has a working cargo but no pacman package for makepkg to
+# find, so say why the dependency check is being skipped instead of failing
+# with "missing cargo" while cargo is on PATH.
+if ! pacman -Q cargo >/dev/null 2>&1 && command -v cargo >/dev/null 2>&1; then
+    echo "omascope: cargo comes from rustup, so the makedepends check is skipped." >&2
+    set -- --nodeps "$@"
+fi
+
 exec makepkg -fsi "$@"
