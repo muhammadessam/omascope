@@ -12,9 +12,23 @@ use std::os::unix::fs::MetadataExt;
 /// on Linux regardless of the architecture or the configured tick rate.
 pub const USER_HZ: u64 = 100;
 
-/// The architectures Omarchy installs on use 4 KiB pages, and `/proc/<pid>/stat`
-/// counts RSS in pages.
-const PAGE_SIZE: u64 = 4096;
+/// glibc's `_SC_PAGESIZE`; the same number on every Linux architecture.
+const SC_PAGESIZE: i32 = 30;
+
+extern "C" {
+    fn sysconf(name: i32) -> i64;
+}
+
+/// `/proc/<pid>/stat` counts RSS in pages, and aarch64 kernels can run 16 KiB
+/// pages, so the size is asked for rather than assumed to be 4 KiB.
+fn page_size() -> u64 {
+    use std::sync::OnceLock;
+    static SIZE: OnceLock<u64> = OnceLock::new();
+    *SIZE.get_or_init(|| {
+        let value = unsafe { sysconf(SC_PAGESIZE) };
+        if value > 0 { value as u64 } else { 4096 }
+    })
+}
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Process {
@@ -144,7 +158,7 @@ impl Sampler {
                     name: stat.comm.clone(),
                     state: stat.state,
                     cpu: (cpu * 10.0).round() / 10.0,
-                    rss: stat.rss_pages * PAGE_SIZE,
+                    rss: stat.rss_pages * page_size(),
                     threads: stat.threads,
                     started: boot + stat.starttime / USER_HZ,
                     cmd,
@@ -398,6 +412,12 @@ mod tests {
         // 8 cores busy for a second is 800% in top's units.
         let value = lifetime_cpu(800, 0, 1.0, 8);
         assert!((value - 800.0).abs() < 0.001, "got {value}");
+    }
+
+    #[test]
+    fn the_page_size_is_plausible() {
+        let size = page_size();
+        assert!(size >= 4096 && size.is_power_of_two(), "got {size}");
     }
 
     #[test]

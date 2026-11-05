@@ -1,0 +1,20 @@
+#!/bin/sh
+# Builds the source tarball Omarchy's package recipe fetches from the GitHub
+# release. The archive comes from the tag, not the working tree, so it can only
+# contain committed files.
+set -eu
+
+ROOT="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
+VERSION="$(sed -n 's/^version = "\([^"]*\)"/\1/p' "$ROOT/Cargo.toml" | head -1)"
+TAG="v$VERSION"
+
+if ! git -C "$ROOT" rev-parse --verify "$TAG" >/dev/null 2>&1; then
+    echo "omascope: tag $TAG does not exist yet. Commit the release and tag it first." >&2
+    exit 1
+fi
+
+mkdir -p "$ROOT/dist"
+OUT="$ROOT/dist/omascope-v$VERSION.tar.gz"
+git -C "$ROOT" archive --format=tar.gz --prefix="omascope-$VERSION/" -o "$OUT" "$TAG"
+(cd "$ROOT/dist" && sha256sum "omascope-v$VERSION.tar.gz" > "omascope-v$VERSION.tar.gz.sha256")
+cat "$ROOT/dist/omascope-v$VERSION.tar.gz.sha256"

@@ -1,5 +1,8 @@
 /build/
 /target/
+/dist/
 /pkgbuild/pkg/
 /pkgbuild/src/
 *.pkg.tar.*
+/ui/Commons
+/ui/Ui

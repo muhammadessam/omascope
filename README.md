@@ -111,6 +111,20 @@ real process and never sends a real signal:
 OMASCOPE_DEMO=1 bin/run
 ```
 
+## Releasing
+
+The Omarchy package builds from a tagged source tarball, so the tag comes
+first:
+
+```
+git tag -a v0.1.0 -m "omascope 0.1.0"
+bin/release-tarball
+```
+
+Upload `dist/omascope-v0.1.0.tar.gz` to the GitHub release for `v0.1.0`.
+`pkgbuilds/omascope` in [omacom-io/omarchy-pkgs](https://github.com/omacom-io/omarchy-pkgs)
+fetches that asset and watches this repository for the next `v*` release.
+
 ## How it is put together
 
 ```
