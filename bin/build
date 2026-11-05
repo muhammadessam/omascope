@@ -1,0 +1,29 @@
+#!/bin/sh
+# Builds the Rust backend and makes the theme and component libraries Omarchy
+# ships visible to Quickshell under their qs.Commons and qs.Ui import names.
+set -eu
+
+ROOT="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
+cd "$ROOT"
+
+OMARCHY_SHELL="${OMARCHY_PATH:-/usr/share/omarchy}/shell"
+for module in Commons Ui; do
+    link="$ROOT/ui/$module"
+    if [ -e "$link" ] || [ -L "$link" ]; then
+        continue
+    fi
+    if [ -d "$OMARCHY_SHELL/$module" ]; then
+        ln -s "$OMARCHY_SHELL/$module" "$link"
+    else
+        printf 'omascope: %s is missing, so the theme will use its fallback colors\n' "$OMARCHY_SHELL/$module" >&2
+    fi
+done
+
+cargo build --release --target-dir "$ROOT/build"
+mkdir -p "$ROOT/build"
+# Rename rather than copy in place: the window may be running from the old
+# binary, and replacing the path is allowed where overwriting it is not.
+cp "$ROOT/build/release/omascope" "$ROOT/build/omascope.new"
+mv -f "$ROOT/build/omascope.new" "$ROOT/build/omascope"
+
+echo "Built $ROOT/build/omascope"

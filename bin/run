@@ -1,0 +1,8 @@
+#!/bin/sh
+# Builds, then launches the window against this checkout's QML, so edits show
+# up without installing a package.
+set -eu
+
+ROOT="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
+"$ROOT/bin/build"
+OMASCOPE_UI="$ROOT/ui" OMASCOPE_BIN="$ROOT/build/omascope" exec "$ROOT/build/omascope" open

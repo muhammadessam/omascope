@@ -1,0 +1,15 @@
+[Desktop Entry]
+Type=Application
+Name=omascope
+Comment=See and end processes
+Comment[da]=Se og afslut processer
+Comment[de]=Prozesse ansehen und beenden
+Comment[ar]=اعرض العمليات وأنهِها
+Exec=omascope
+Icon=omascope
+Terminal=false
+Categories=System;Monitor;
+Keywords=process;task;kill;cpu;memory;
+Keywords[da]=proces;opgave;dræb;cpu;hukommelse;
+Keywords[de]=Prozess;Aufgabe;beenden;CPU;Speicher;
+StartupWMClass=omascope

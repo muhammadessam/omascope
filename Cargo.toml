@@ -1,0 +1,15 @@
+[package]
+name = "omascope"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.77"
+license = "MIT"
+description = "Keyboard-first process manager for Omarchy"
+
+[dependencies]
+
+[profile.release]
+opt-level = 3
+lto = true
+strip = true
+codegen-units = 1

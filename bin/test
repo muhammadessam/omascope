@@ -1,0 +1,8 @@
+#!/bin/sh
+# Runs the Rust tests. They never need a display: they read the live /proc for
+# the sampler test and temp directories for the skill install test.
+set -eu
+
+ROOT="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
+cd "$ROOT"
+cargo test --target-dir "$ROOT/build"

@@ -1,0 +1,9 @@
+#!/bin/sh
+# Builds the package and installs it, so omascope appears in the Omarchy
+# launcher (Super + Space).
+set -eu
+
+ROOT="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
+"$ROOT/bin/build"
+cd "$ROOT/pkgbuild"
+exec makepkg -fsi "$@"

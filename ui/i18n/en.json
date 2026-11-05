@@ -1,0 +1,4 @@
+{
+  "%1 processes": { "one": "%1 process", "other": "%1 processes" },
+  "%1 running": { "one": "%1 running", "other": "%1 running" }
+}
